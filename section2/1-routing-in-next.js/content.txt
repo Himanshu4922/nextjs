@@ -1,0 +1,6 @@
+basic routing in nextjs
+layout.js file is necessary just like index.html in react
+we can also create a custom layout.js file
+page.js file is our home route by default
+Link in nextjs from next/link
+why not a tag ?
