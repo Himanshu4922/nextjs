@@ -1,53 +1,182 @@
-Next.js Basic Routing: Comprehensive Guide
-This README provides a detailed guide on basic routing in Next.js, focusing on key concepts such as the page.js file, the layout.js file, custom layouts, and the use of the Link component from next/link. It is designed to help developers understand Next.js routing for building modern web applications and preparing for technical discussions or interviews.
-Table of Contents
+# Next.js Routing — Notes
 
-Introduction to Next.js Routing
-The Role of page.js
-The Role of layout.js
-Necessity of layout.js
-Creating Custom layout.js Files
-Using Link from next/link
-Why Avoid <a> Tags for Internal Navigation?
-Example Project Structure
-Key Takeaways
+---
 
-Introduction to Next.js Routing
-Next.js uses a file-based routing system in the app directory (introduced with the App Router in Next.js 13). Routes are defined by the folder structure, with specific files like page.js and layout.js controlling the content and structure of each route. This system is intuitive, scalable, and optimized for both server-side and client-side rendering.
-The Role of page.js
-The page.js file defines the content for a specific route in Next.js. It is the primary file that renders the UI for a given path.
+## 1. How Routing Works in Next.js (App Router)
 
-Default Home Route: The app/page.js file serves as the default home route (/), rendering the homepage of the application.
-Route-Specific Content: Each route segment can have its own page.js file. For example, app/about/page.js defines the /about route.
-Requirement: A page.js file is required for a route to be accessible; otherwise, navigating to that route results in a 404 error.
+Next.js uses a **file-system based router**. This means the folder and file structure inside the `app/` directory directly maps to URL routes in your application. You don't need to configure a router manually like you do in React with `react-router-dom`.
 
-Example:
-// app/page.js
-export default function HomePage() {
-  return <h1>Welcome to the Home Page</h1>;
-}
+```
+app/
+├── layout.js       → Root layout (wraps all pages)
+├── page.js         → Home route "/"
+├── about/
+│   └── page.js     → "/about"
+└── dashboard/
+    ├── layout.js   → Nested layout for dashboard
+    └── page.js     → "/dashboard"
+```
 
-The Role of layout.js
-The layout.js file defines a shared UI structure that wraps around one or more routes. It is used to provide consistent elements like headers, footers, or sidebars across pages.
+---
 
-Root Layout: The app/layout.js file is the top-level layout that applies to all routes in the application.
-Nested Layouts: Subdirectories can have their own layout.js files (e.g., app/dashboard/layout.js) to define layouts specific to those routes.
-React Server Components: By default, layout.js files are React Server Components, enabling efficient server-side rendering.
-State Persistence: Layouts preserve state and UI during client-side navigation, improving performance.
+## 2. `layout.js` — The Root Layout
 
-Example:
+### What it is
+`layout.js` is a **required file** in the `app/` directory. It acts as the **shell of your application** — similar in purpose to `index.html` in a traditional React (CRA) setup.
+
+### Why it's required
+- It defines the `<html>` and `<body>` tags for your entire app.
+- Every page rendered by Next.js is wrapped inside the root `layout.js`.
+- Without it, Next.js has no base HTML structure to render into.
+
+### Comparison with `index.html` in React (CRA)
+
+| React (CRA)         | Next.js (App Router)       |
+|---------------------|----------------------------|
+| `public/index.html` | `app/layout.js`            |
+| Static HTML shell   | Dynamic React component    |
+| Cannot use JSX      | Full JSX + server component support |
+
+### Basic `layout.js` example
+
+```jsx
 // app/layout.js
+export const metadata = {
+  title: 'My App',
+  description: 'Built with Next.js',
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <header>Site Header</header>
-        <main>{children}</main>
-        <footer>Site Footer</footer>
+        {children}
       </body>
     </html>
   );
 }
+```
 
-Necessity of layout.js
-The root layout.js file in the app directory is mandatory when using the Next.js App Router. It defines the base structure of the application, including the
+> `children` here represents whichever `page.js` is currently being visited.
+
+---
+
+## 3. Custom / Nested `layout.js`
+
+You can create **segment-specific layouts** by adding a `layout.js` inside any route folder. This layout will only wrap pages within that folder, while still being nested inside the root layout.
+
+### Example
+
+```
+app/
+├── layout.js           → Root layout (wraps everything)
+└── dashboard/
+    ├── layout.js       → Dashboard-specific layout
+    └── page.js         → "/dashboard"
+```
+
+```jsx
+// app/dashboard/layout.js
+export default function DashboardLayout({ children }) {
+  return (
+    <section>
+      <nav>Dashboard Sidebar</nav>
+      <main>{children}</main>
+    </section>
+  );
+}
+```
+
+### Key behaviours
+- Nested layouts **persist across route changes** within their segment — they don't remount when you navigate between child pages. This is great for things like sidebars or tab bars.
+- You can nest layouts as deeply as you need.
+- The root `layout.js` always renders at the top of the tree.
+
+---
+
+## 4. `page.js` — The Home Route
+
+`page.js` inside the `app/` directory is automatically mapped to the **root route `/`** of your application.
+
+```jsx
+// app/page.js
+export default function HomePage() {
+  return <h1>Welcome to the Home Page</h1>;
+}
+```
+
+- Every route segment needs its own `page.js` to be publicly accessible.
+- A folder without a `page.js` is **not** a route — it can be used for components, utilities, etc. without being exposed as a URL.
+
+---
+
+## 5. `Link` from `next/link` — Client-Side Navigation
+
+### Usage
+
+```jsx
+import Link from 'next/link';
+
+export default function Navbar() {
+  return (
+    <nav>
+      <Link href="/">Home</Link>
+      <Link href="/about">About</Link>
+      <Link href="/dashboard">Dashboard</Link>
+    </nav>
+  );
+}
+```
+
+---
+
+## 6. Why `<Link>` instead of `<a>`?
+
+This is one of the most important distinctions when moving from plain HTML or React to Next.js.
+
+### The problem with `<a>` tags
+
+```html
+<!-- Don't do this for internal navigation -->
+<a href="/about">About</a>
+```
+
+When you use a raw `<a>` tag:
+- The browser does a **full page reload** — the entire HTML document is re-fetched from the server.
+- All JavaScript is re-parsed and re-executed.
+- All React state is lost.
+- It is **slow** — you lose all the benefits of a Single Page Application (SPA).
+
+### What `<Link>` does differently
+
+| Feature | `<a>` tag | `<Link>` from Next.js |
+|---|---|---|
+| Navigation type | Full page reload | Client-side (SPA-style) |
+| State preserved | ❌ Lost on navigation | ✅ Preserved |
+| Speed | Slow (full reload) | Fast (only fetches new data) |
+| Prefetching | ❌ None | ✅ Automatic in viewport |
+| JS re-execution | ✅ Every time | ❌ Only what's needed |
+
+### Prefetching
+Next.js `<Link>` **automatically prefetches** the linked page's data when the link enters the viewport (in production). This means by the time the user clicks the link, the page is already loaded — resulting in near-instant navigation.
+
+### When to still use `<a>`
+- Navigating to **external URLs** (outside your app):
+```jsx
+<a href="https://google.com" target="_blank" rel="noopener noreferrer">
+  Visit Google
+</a>
+```
+- Linking to files for download (PDFs, etc.)
+
+---
+
+## Summary
+
+| Concept | Key Point |
+|---|---|
+| `layout.js` | Required root shell — equivalent to `index.html`. Wraps all pages. |
+| Custom `layout.js` | Nested layouts for specific route segments. Persist across child navigations. |
+| `page.js` | Defines a publicly accessible route. `app/page.js` = `/`. |
+| `<Link>` | Client-side navigation. Fast, preserves state, auto-prefetches. |
+| `<a>` tag | Full page reload. Only use for external links. |
