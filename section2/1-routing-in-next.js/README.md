@@ -1,4 +1,4 @@
-# Next.js Routing — Notes
+# Next.js Routing Notes
 
 ---
 
